@@ -1,8 +1,8 @@
 ### Revised Simplex Method! 
-import numpy as np
-import scipy.linalg as la
+
 
 import numpy as np
+import scipy.linalg as la
 
 class RevisedSimplex:
     
@@ -43,8 +43,6 @@ class RevisedSimplex:
         self.Andic = dict(zip(self.nonbasic, self.An.T[:,]))
         self.B = (np.eye(len(An)))
         
-        #print(self.inves)
-        
         def BTRAN(x):
             y = np.matrix(x)
             # print(self.inves)
@@ -58,8 +56,6 @@ class RevisedSimplex:
             return y
 
         y = BTRAN(self.cb)
-        #print("y is:",y)
-        # y = np.dot(self.cb, inv(self.Bnew))
         
         enter = self.cn - np.dot(y, self.An)
         entering = int(np.argmax(enter, axis = 1)) 
@@ -85,18 +81,12 @@ class RevisedSimplex:
             return d
         
         d = FTRAN(self.Andic[entering_variable])
-        #print("the d vector is :",d )
-        #d = (np.dot( inv(self.Bnew), self.Andic[entering_variable] ))
         print("the d vector is :",d )
         calculate_t = np.divide(self.b, d) 
 
         exiting = np.argmin(calculate_t)
-        #exiting_variable = basic[exiting]
-        # this calculates the new b vector, need to func later to check if problem is unbounded!
-        t = np.min(calculate_t) #np.min(self.b.T / d)
+        t = np.min(calculate_t)
         bnew = self.b - t*d 
-
-        #print("the shape of b is", b)
         bnew[bnew == 0] = t
         return entering, exiting, bnew, d, optimal
     
@@ -116,8 +106,6 @@ class RevisedSimplex:
         entering, exiting, bnew, d, optimal = self.Exit(self)
         RevisedSimplex.optimal = optimal
         
-        # First swap entering and exiting in lists
-        
         print(entering, exiting)
         
         self.nonbasic[entering], self.basic[exiting] = self.basic[exiting], self.nonbasic[entering]
@@ -126,11 +114,9 @@ class RevisedSimplex:
         # Compute new cn and cb:
         RevisedSimplex.cn, RevisedSimplex.cb = swap(self.cn,self.cb,entering,exiting)
         # compute new An
-        RevisedSimplex.An[:,entering] = self.B[:,exiting] # here B cannot change between iterations (B_new and B_old can)
+        RevisedSimplex.An[:,entering] = self.B[:,exiting] 
         # compute new b vector!
-        RevisedSimplex.b = bnew #.T
-
-        #print("shape of d is,",d.shape)
+        RevisedSimplex.b = bnew 
         
         def Etainverse(matrix,position,a):
             E = matrix
@@ -139,12 +125,9 @@ class RevisedSimplex:
             E[:,position] = -E[:,position]/test
             E[position,position] = 1/test
             Epack = tuple((position, E[:,position]))
-            ## need to append tuple with position and column
             return Epack
-        
-        #print("in update d vector is", d)
+
         Epack = Etainverse(np.matrix(np.eye(len(An))), exiting, d)
-        #print("in Update Epack is:", Epack)
         self.inves.append(Epack)
         RevisedSimplex.inves = self.inves
 
@@ -157,14 +140,11 @@ class RevisedSimplex:
             self.Update()
             count += 1    
         print("The current dictionary is optimal! The number of iterationrs to solve was:", count) 
-        
-       #print("current cb is",RevisedSimplex.cn)
     
     def solve():
         # cetral function: calls and organizes all other functions
         # returns optimal coefficients, optimal Z, number of iterations to solve, maybe time?
         pass
-
     
     ### --- Helper functions --- ###
     
@@ -180,7 +160,7 @@ class RevisedSimplex:
            # z =
             pass
         pass
-    # @staticmethod
+
     def TriangularFactorization(cls):
         (P, L, U) = la.lu(cls.B) #B matrix does not have to be I :-)
         
