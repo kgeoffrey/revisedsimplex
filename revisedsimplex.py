@@ -45,13 +45,10 @@ class RevisedSimplex:
         
         def BTRAN(x):
             y = np.matrix(x)
-            # print(self.inves)
-            ## used to solve y 
             for i in self.inves[::-1]:
                 position, col = i
                 invE = np.matrix(np.eye(len(An)))
                 invE[:,position] = np.matrix(col)
-                #print(invE)
                 y = np.dot(y , invE)
             return y
 
@@ -76,14 +73,11 @@ class RevisedSimplex:
                 invE = np.matrix(np.eye(len(An)))
                 invE[:,position] = np.matrix(col)
                 d = np.dot(invE , d)
-                #print("the d vector is :",d )
-                #print(d)
             return d
         
         d = FTRAN(self.Andic[entering_variable])
         print("the d vector is :",d )
         calculate_t = np.divide(self.b, d) 
-
         exiting = np.argmin(calculate_t)
         t = np.min(calculate_t)
         bnew = self.b - t*d 
