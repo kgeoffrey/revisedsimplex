@@ -3,10 +3,15 @@
 
 import numpy as np
 import scipy.linalg as la
+## Division by zero will yield inf - only care about the minimum value in vector 
+np.seterr(divide='ignore', invalid='ignore')
 
 class RevisedSimplex:
     
     def __init__(self, cn, An, b):
+        ## as of now Basis will always be I, have to write function 
+        ## that will catch arbitrary A and split it into An and B
+        ## --> LU decomposition allows for this
         self.Initializer(cn, An, b)
         
     @classmethod
@@ -27,12 +32,13 @@ class RevisedSimplex:
         cls.Andic = dict(zip(cls.nonbasic, An.T[:,]))
 
         ## Decompose B!
-        cls.inves = cls.TriangularFactorization(cls)
+        cls.inves = cls.TriangularFactorization(cls.B)
         
         ## Optimality Flag
         cls.optimal = False
     
     def Enter(self):
+         
         self.basic = RevisedSimplex.basic
         self.nonbasic = RevisedSimplex.nonbasic
         self.b = RevisedSimplex.b
@@ -45,7 +51,8 @@ class RevisedSimplex:
         
         def BTRAN(x):
             y = np.matrix(x)
-
+            # print(self.inves)
+            ## used to solve y 
             for i in self.inves[::-1]:
                 position, col = i
                 invE = np.matrix(np.eye(len(An)))
@@ -55,7 +62,6 @@ class RevisedSimplex:
             return y
 
         y = BTRAN(self.cb)
-
         
         enter = self.cn - np.dot(y, self.An)
         entering = int(np.argmax(enter, axis = 1)) 
@@ -76,20 +82,21 @@ class RevisedSimplex:
                 invE = np.matrix(np.eye(len(An)))
                 invE[:,position] = np.matrix(col)
                 d = np.dot(invE , d)
-
             return d
         
         d = FTRAN(self.Andic[entering_variable])
 
-        print("the d vector is :",d )
         calculate_t = np.divide(self.b, d) 
 
         exiting = np.argmin(calculate_t)
-
-        # this calculates the new b vector, need to func later to check if problem is unbounded!
+        
         t = np.min(calculate_t)
         bnew = self.b - t*d 
-
+        
+        ## if checks if the problem is unbounded
+        if np.any(bnew < 0) == True:
+            raise Exception('This problem is unbounded!')
+            
         bnew[bnew == 0] = t
         return entering, exiting, bnew, d, optimal
     
@@ -107,9 +114,16 @@ class RevisedSimplex:
             return A,B
         
         entering, exiting, bnew, d, optimal = self.Exit(self)
+        ## This terminates Algorithm, when the optimal dictionary is found
         RevisedSimplex.optimal = optimal
         
-        # First swap entering and exiting in lists
+        # This file refactors the ETA file if it gets too long!
+        print("LENGTH OF ETAFILE", len(RevisedSimplex.inves))
+        if len(RevisedSimplex.inves) > 30:
+            self.refactorize()
+        
+        if RevisedSimplex.optimal == True:
+            return
         
         print(entering, exiting)
         
@@ -119,10 +133,9 @@ class RevisedSimplex:
         # Compute new cn and cb:
         RevisedSimplex.cn, RevisedSimplex.cb = swap(self.cn,self.cb,entering,exiting)
         # compute new An
-        RevisedSimplex.An[:,entering] = self.B[:,exiting] # here B cannot change between iterations (B_new and B_old can)
+        RevisedSimplex.An[:,entering] = self.B[:,exiting] 
         # compute new b vector!
         RevisedSimplex.b = bnew 
-
         
         def Etainverse(matrix,position,a):
             E = matrix
@@ -132,45 +145,53 @@ class RevisedSimplex:
             E[position,position] = 1/test
             Epack = tuple((position, E[:,position]))
             return Epack
-
+        
         Epack = Etainverse(np.matrix(np.eye(len(An))), exiting, d)
-
         self.inves.append(Epack)
         RevisedSimplex.inves = self.inves
 
-        print(RevisedSimplex.optimal)
 
     def Pivot(self):
         # counts the number of pivtos 
         count = 0
         while RevisedSimplex.optimal != True:
             self.Update()
-            count += 1    
-        print("The current dictionary is optimal! The number of iterationrs to solve was:", count) 
-
+            count += 1
+        return count
     
-    def solve():
-        # cetral function: calls and organizes all other functions
-        # returns optimal coefficients, optimal Z, number of iterations to solve, maybe time?
-        pass
+    def solve(self):
+        count = self.Pivot()
+        
+        ## self.tabulate() tabulate smth smth
+        if RevisedSimplex.optimal == True:
+            z = self.maximum()
+            print("The current dictionary is optimal! The number of iterationrs to solve was:", count) 
+            print("maximum value is:", z)
+            print("The coefficients of the basic variables are", self.cn)
 
     
     ### --- Helper functions --- ###
     
+    def tabulate():
+        # will write function that puts results in table
+        # also want to show slack per variable
+        # small table
+        pass
+    
     def cycling():
-        # intended to catch cycling behaviour in problems
-        # maybe keep track of variables and check if it cycling through the same variables
+        # cycling is rare but is guaranteed to never occur under "bland's rule"
+        # -> chose smallest subscript variable if there is a choice 
         # do this later, cycling almost never occurs
         pass
     
     def maximum(self):
-        if RevisedSimplex.optimal == True:
-            ## calculation of z 
-            pass
-        pass
-
-    def TriangularFactorization(cls):
-        (P, L, U) = la.lu(cls.B) #B matrix does not have to be I :-)
+        if RevisedSimplex.optimal == True: 
+            z = np.dot(RevisedSimplex.cb,  RevisedSimplex.b)
+            return z
+        
+    @staticmethod
+    def TriangularFactorization(X):
+        (P, L, U) = la.lu(X) #B matrix does not have to be I :-)
         
         def InvEtafact(matrix):
             d = np.matrix(matrix)
@@ -196,3 +217,21 @@ class RevisedSimplex:
             return new
         initiate = createETA(p,l,u)
         return initiate
+    
+    @classmethod
+    def refactorize(self):
+        ## This function will refactorize B the current B when the ETA file
+        ## or "inves" gets too long, maybe after 20 iterations? 
+        def reconstruct():
+            y = np.eye(len(RevisedSimplex.An))
+            for i in RevisedSimplex.inves:
+                pos, col = i 
+                I = np.matrix(np.eye(len(RevisedSimplex.An)))
+                # I[:,i] = col
+                test = I[pos,pos]
+                I[:,pos] = -I[:,pos]/test
+                I[pos,pos] = 1/test
+                y = np.dot(y , I)
+            return y
+        newB = reconstruct()
+        RevisedSimplex.inves = RevisedSimplex.TriangularFactorization(newB)
