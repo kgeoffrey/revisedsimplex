@@ -1,10 +1,10 @@
 # Revised Simplex Algorithm
 
-### This repository contains my implementation of the Revised Simplex Method (or Revised Simplex Algorithm). I closely follow the outline of the algorithm as described in "Linear Programming" by Vasek Chvatal.
+### This repository contains my implementation of the Revised Simplex Method (or Revised Simplex Algorithm). I closely follow the outline of the algorithm as described in "Linear Programming" by Vasek Chvatal. I tried to use as few dependancies as possible, but due to effciency issues, decided to use the 'scipy.ling' package (a wrapper for LAPACK) for computing the LU decomposition. All other matrix operations are carried out in numpy.
 
 This optimization method requires to solve systems of the kind yB = c and Bd = a (for y and d respectively). As optimization problems with many variables and constraints could result in a very large B matrix, inverting B may be very costly and inaccurate (due to rounding errors). A very cool feature of the method described by Chvatal, makes use of the popular "product form of the inverse" - instead of inverting B directly in each iteration, it may be factored into 'Elementary Matrices' (also called 'Eta Matrices': matrices that only differ from Identity Matrices in one column), as every B only changes in one column every iteration. 
 
-These ETA-Matrices still need to be inverted to solve for y and d, but **each inverse of E is extremely easy to solve**:
+These ETA-Matrices still need to be inverted to solve for y and d, but **each inverse of E is very easy to solve**:
 
 ![Etainverse](reference/Etainversion.PNG)
 
