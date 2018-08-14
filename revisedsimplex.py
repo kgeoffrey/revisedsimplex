@@ -36,7 +36,13 @@ class RevisedSimplex:
         
         ## Optimality Flag
         cls.optimal = False
-    
+        
+        ## disabled trinagular fact. if initial basis is I
+        '''
+        one = np.matrix([1])
+        zeros = np.zeros(len(An)-1).reshape(len(An)-1,1)
+        cls.inves = [(0,np.vstack((one, zeros)))]
+        '''
     def Enter(self):
          
         self.basic = RevisedSimplex.basic
@@ -50,14 +56,11 @@ class RevisedSimplex:
         self.B = (np.eye(len(An)))
         
         def BTRAN(x):
-            y = np.matrix(x)
-            # print(self.inves)
-            ## used to solve y 
+            y = np.matrix(x) 
             for i in self.inves[::-1]:
                 position, col = i
                 invE = np.matrix(np.eye(len(An)))
                 invE[:,position] = np.matrix(col)
-                #print(invE)
                 y = np.dot(y , invE)
             return y
 
@@ -67,8 +70,6 @@ class RevisedSimplex:
         entering = int(np.argmax(enter, axis = 1)) 
         entering_variable = self.nonbasic[entering]
         optimal = np.all(enter <= 0)
-
-        print(enter, RevisedSimplex.cn)
 
         return entering, entering_variable, optimal 
     
@@ -118,8 +119,7 @@ class RevisedSimplex:
         RevisedSimplex.optimal = optimal
         
         # This file refactors the ETA file if it gets too long!
-        print("LENGTH OF ETAFILE", len(RevisedSimplex.inves))
-        if len(RevisedSimplex.inves) > 30:
+        if len(RevisedSimplex.inves) > len(RevisedSimplex.inves) + 20:
             self.refactorize()
         
         if RevisedSimplex.optimal == True:
@@ -130,11 +130,8 @@ class RevisedSimplex:
         self.nonbasic[entering], self.basic[exiting] = self.basic[exiting], self.nonbasic[entering]
         RevisedSimplex.nonbasic = self.nonbasic
         RevisedSimplex.basic = self.basic
-        # Compute new cn and cb:
         RevisedSimplex.cn, RevisedSimplex.cb = swap(self.cn,self.cb,entering,exiting)
-        # compute new An
         RevisedSimplex.An[:,entering] = self.B[:,exiting] 
-        # compute new b vector!
         RevisedSimplex.b = bnew 
         
         def Etainverse(matrix,position,a):
@@ -161,13 +158,10 @@ class RevisedSimplex:
     
     def solve(self):
         count = self.Pivot()
-        
-        ## self.tabulate() tabulate smth smth
         if RevisedSimplex.optimal == True:
             z = self.maximum()
-            print("The current dictionary is optimal! The number of iterationrs to solve was:", count) 
+            print("The current dictionary is optimal! The number of iterations to solve was:", count) 
             print("maximum value is:", z)
-            print("The coefficients of the basic variables are", self.cn)
 
     
     ### --- Helper functions --- ###
